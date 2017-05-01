@@ -1,11 +1,5 @@
 from params import *
 
-
-def nCr(n, r):
-    f = factorial
-    return f(n) / f(r) / f(n - r)
-
-
 def timer(start, end, label):
     hours, rem = divmod(end - start, 3600)
     minutes, seconds = divmod(rem, 60)
@@ -27,7 +21,7 @@ def plotGrid():
     plt.show()
 
 
-def plotDistribution(Array, map_bounds, label):
+def plotDistribution(Array, map_bounds, label, interpolation, line):
     cmap = plt.cm.jet  # define the colormap
     cmaplist = [cmap(i) for i in range(cmap.N)]  # extract all colors from the .jet map
     cmaplist[0] = (.5, .5, .5, 1.0)  # force the first color entry to be grey
@@ -36,7 +30,7 @@ def plotDistribution(Array, map_bounds, label):
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    im = ax.imshow(Array.T, origin='lower', cmap=cmap, norm=norm, interpolation="nearest")
+    im = ax.imshow(Array.T, origin='lower', cmap=cmap, norm=norm, interpolation=interpolation)
     fig.colorbar(im, ax=ax)
 
     if label == 'Subcells':
@@ -52,22 +46,50 @@ def plotDistribution(Array, map_bounds, label):
 
     plt.xticks(xtick_locs, xtick_lbls)
     plt.yticks(ytick_locs, ytick_lbls)
-    plt.plot([i for i in range(N_x)], [i for i in range(N_y)], color='r')
     plt.title(label)
+    if line:
+        plt.plot([i for i in range(N_x)], [i for i in range(N_y)], color='r')
     plt.show()
     fig.clf()
     plt.close()
+
+    del ax, im, fig, cmap, norm
     gc.collect()
 
-
 def plot_T_function(Array):
+    def f(x,a,b):
+        return a*x+b
+
     T = np.zeros((N_x))
     for i in range(N_x):
         T[i] = Array[i, i]
-    plt.plot(T[i])
+    x = np.array([i for i in range(N_x)])
+    popt, pcov = opt.curve_fit(f, x, T)
+
+    plt.plot(T, label = 'actual')
+    plt.plot(x, f(x, *popt), 'r--', label='fitted')
     plt.xlabel('cells')
     plt.ylabel('T')
+    plt.legend(loc=0)
+    plt.show()
 
+def plot_N_function(Array):
+    def f(x,a,b):
+        return a*x+b
+
+    N = np.zeros((N_x))
+    for i in range(N_x):
+        N[i] = Array[i, i]
+
+    x = np.array([i for i in range(N_x)])
+    popt, pcov = opt.curve_fit(f, x, N)
+
+    plt.plot(N, label = 'actual')
+    plt.plot(x, f(x, *popt), 'r--', label='fitted')
+    plt.xlabel('cells')
+    plt.ylabel('N')
+    plt.legend(loc=0)
+    plt.show()
 
 def plotVelDistribusion(beta):
     bin_num = 50

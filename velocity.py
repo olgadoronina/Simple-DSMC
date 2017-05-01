@@ -4,10 +4,10 @@ from params import *
 def termalAccomodation(speed, bound):
     """Calculate new temperature based on
      accomodation coefficient"""
-    if bound not in ['up', 'right']:
-        T_wall = T
-    else:
+    if bound in ['up', 'right']:
         T_wall = T_w
+    else:
+        T_wall = T
     T_i = m * speed ** 2 / 3 / k
     T_r = T_i * (1 - alpha) + alpha * T_wall
     beta_new = sqrt(m / 2 / k / T_r)
@@ -66,4 +66,6 @@ def newVelocity(bound, U):
         speed = norm(U)
         beta_new = termalAccomodation(speed, bound)
         U = diffuseVelocity(beta_new, bound)
+    if COUETTE and (bound is 'up'):
+        U[0] += u_couette
     return U[0], U[1], U[2]

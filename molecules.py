@@ -4,7 +4,7 @@ from velocity import *
 
 
 class Molecule(object):
-    def __init__(self, x=None, y=None):
+    def __init__(self, x=None, y=None, flux=None):
 
         def acceptance_rejection_uniform(beta):
             """Acceptance-rejection procedure for gaussian distribution in equilibrium gas"""
@@ -19,14 +19,18 @@ class Molecule(object):
         def init_coords(x, y):
             """Calculate initial conditions for sample molecule
             using uniform distribution"""
-            if not x:
+            if x == None:
                 self.x = rand.uniform(0, X_max)
-                if self.x == 0:
-                    self.x += TINY
-            if not y:
+            else:
+                self.x = x
+            if y == None:
                 self.y = rand.uniform(0, Y_max)
-                if self.y == 0:
-                    self.y += TINY
+            else:
+                self.y = y
+            if self.x == 0:
+                self.x += TINY
+            if self.y == 0:
+                self.y += TINY
 
         def init_velocity(beta):
             """Calculate initial velocities
@@ -34,9 +38,19 @@ class Molecule(object):
             and direct pair method for v' and w' """
             phi = rand.uniform(0, 2 * pi)
             rho = sqrt(-log(rand.random())) / beta
-            self.u = acceptance_rejection_uniform(beta)
-            self.v = rho * cos(phi)
-            self.w = rho * sin(phi)
+            if not flux:
+                self.u = acceptance_rejection_uniform(beta)
+            elif flux == 'input':
+                self.u = acceptance_rejection(s, beta)
+            elif flux == 'output':
+                self.u = -acceptance_rejection(-s, beta)
+            else:
+                sys.exit("Molecule(): init_velocity(): flux undefined")
+
+            # self.v = rho * cos(phi)
+            # self.w = rho * sin(phi)
+            self.v = acceptance_rejection_uniform(beta)
+            self.w = acceptance_rejection_uniform(beta)
 
         init_coords(x, y)
         init_velocity(beta)
@@ -90,13 +104,20 @@ class Molecule(object):
                 if time > 0 and time <= t:
                     t = time
                     bound = y_bound
-            if bound in ['left', 'right']:
-                self.x = boundary[bound]
+            if bound is 'left':
+                self.x = boundary[bound] + TINY
                 self.y += self.v * t
-            if bound in ['down', 'up']:
+            if bound is 'right':
+                self.x = boundary[bound] - TINY
+                self.y += self.v * t
+            if bound is 'down':
                 self.x += self.u * t
-                self.y = boundary[bound]
+                self.y = boundary[bound] + TINY
+            if bound is 'up':
+                self.x += self.u * t
+                self.y = boundary[bound] - TINY
             if bound == None:
+                print(self.x, self.y, self.u, self.v, time, time_left)
                 sys.exit("Molecule:update_coord(self):intersection(): bound is undefined")
             return time_left - t, bound
 
@@ -104,6 +125,9 @@ class Molecule(object):
         time_left = time_step
         while flag_bound_collision:
             time_left, bound_of_intersection = intersection(time_left)
+            if INPUT and bound_of_intersection in ['left', 'right']:
+                self.x = 'delete'
+                break
             self.u, self.v, self.w = newVelocity(bound_of_intersection, [self.u, self.v, self.w])
             if abs(time_left) < TINY:
                 break
